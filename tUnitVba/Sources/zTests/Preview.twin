@@ -1,0 +1,41 @@
+[ Description ("Used internally for developing & debugging, not for production") ]
+[ FormDesignerId ("377BD920-1C8E-4779-A2F7-69D646D50EFF") ]
+[ Restricted, Hidden ]
+Private Class Preview
+    Private Printer As VBPrint
+    
+    Private DeclareWide PtrSafe Function GetDC Lib "user32" (ByVal hWnd As LongPtr) As LongPtr
+	
+    Sub New()
+    End Sub
+    
+    Private Sub Form_Load() Handles Form.Load
+    End Sub
+    
+    Private Sub Command1_Click() Handles Command1.Click
+        Set Printer = New VBPrint(Me.DebugOutput)
+        Set Printer.Font = Me.Font
+        With Printer
+            .hDC = GetDC(Me.hWnd)
+            
+            .Print "a",
+            .Print "b"
+            .Print "c" ;
+            .Print "d"
+            .Print "e"
+            .Print ""
+            .Print "This is the class Print method:"
+            .Print "test1", "test2", "test3"
+            .Print "test1", "test2" ; "test3"
+            .Print ""
+            .Print "test1", "test2" ; Spc(10) ; "test3"
+            .Print "test1", "test2" ; Tab(32) ; "test3"
+            .Print "test1" ; Tab ; "test2" ; , "test3"
+            'FIXME in the Debug.Print, this is a new line, but
+            ' we don't seem to get any indication that there'll 
+            ' be a new line... 
+            .Print "aa" & vbTab & "bb" & vbTab & "cc" & vbCrLf & "dd"
+            .Print String$(10, ChrW$(&H2661)), ChrW$(&H25C4) ; " Unicode"
+        End With
+    End Sub
+End Class

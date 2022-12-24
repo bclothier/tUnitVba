@@ -1,0 +1,107 @@
+'https://nolongerset.com/now-you-have-two-problems/
+Private Module RegEx
+    '---------------------------------------------------------------------------------------
+    ' Procedure : RegEx
+    ' Author    : Mike Wolfe <mike@nolongerset.com>
+    ' Date      : 9/1/2010
+    ' Purpose   : Perform a regular expression search on a string and return the first match
+    '               or the null string if no matches are found.
+    ' Usage     : If Len(RegEx("\d{1,2}[/-]\d{1,2}[/-]\d{2,4}", txt)) = 0 Then MsgBox "No date in " & txt
+    '           : TheDate = RegEx("\d{1,2}[/-]\d{1,2}[/-]\d{2,4}", txt)
+    '           : CUSIP = Regex("[A-Za-z0-9]{8}[0-9]",txt)
+    '---------------------------------------------------------------------------------------
+    '
+    Public Function RegEx(Pattern As String, TextToSearch As String, Optional IgnoreCase As Boolean = False) As String
+        Dim RE As Object, REMatches As Object
+
+        Set RE = CreateObject("vbscript.regexp")
+        With RE
+            .MultiLine = False
+            .Global = False
+            .IgnoreCase = IgnoreCase
+            .Pattern = Pattern
+        End With
+        
+        Set REMatches = RE.Execute(TextToSearch)
+        If REMatches.Count > 0 Then
+            RegEx = REMatches(0)
+        Else
+            RegEx = vbNullString
+        End If
+    End Function
+
+    '---------------------------------------------------------------------------------------
+    ' Procedure : RegExReplace
+    ' Author    : Mike Wolfe <mike@nolongerset.com>
+    ' Date      : 11/4/2010
+    ' Purpose   : Attempts to replace text in the TextToSearch with text and back references
+    '               from the ReplacePattern for any matches found using SearchPattern.
+    ' Notes     - If no matches are found, TextToSearch is returned unaltered.  To get
+    '               specific info from a string, use RegExExtract instead.
+    '>>> RegExReplace("(.*)(\d{3})[\)\s.-](\d{3})[\s.-](\d{4})(.*)", "My phone # is 570.555.1234.", "$1($2)$3-$4$5")
+    'My phone # is (570)555-1234.
+    '---------------------------------------------------------------------------------------
+    '
+    Public Function RegExReplace(SearchPattern As String, TextToSearch As String, ReplacePattern As String, _
+                        Optional GlobalReplace As Boolean = True, _
+                        Optional IgnoreCase As Boolean = False, _
+                        Optional MultiLine As Boolean = False) As String
+    Dim RE As Object
+
+        Set RE = CreateObject("vbscript.regexp")
+        With RE
+            .MultiLine = MultiLine
+            .Global = GlobalReplace
+            .IgnoreCase = IgnoreCase
+            .Pattern = SearchPattern
+        End With
+        
+        RegExReplace = RE.Replace(TextToSearch, ReplacePattern)
+    End Function
+
+    '---------------------------------------------------------------------------------------
+    ' Procedure : RegExExtract
+    ' Author    : Mike Wolfe <mike@nolongerset.com>
+    ' Date      : 11/4/2010
+    ' Purpose   : Extracts specific information from a string.  Returns empty string if not found.
+    '>>> RegExExtract("(.*)(\d{3})[\)\s.-](\d{3})[\s.-](\d{4})(.*)", "My phone # is 570.555.1234.", "$2$3$4")
+    ' 5705551234
+    '>>> RegExExtract("(.*)(\d{3})[\)\s.-](\d{3})[\s.-](\d{4})(.*)", "My name is Mike.", "$2$3$4")
+    '
+    '>>> RegExReplace("(.*)(\d{3})[\)\s.-](\d{3})[\s.-](\d{4})(.*)", "My name is Mike.", "$2$3$4")
+    ' My name is Mike.
+    '---------------------------------------------------------------------------------------
+    '
+    Public Function RegExExtract(SearchPattern As String, TextToSearch As String, PatternToExtract As String, _
+                        Optional GlobalReplace As Boolean = True, _
+                        Optional IgnoreCase As Boolean = False, _
+                        Optional MultiLine As Boolean = False) As String
+    Dim MatchFound As Boolean
+
+        MatchFound = Len(RegEx(SearchPattern, TextToSearch, IgnoreCase)) > 0
+        If MatchFound Then
+            RegExExtract = RegExReplace(SearchPattern, TextToSearch, PatternToExtract, _
+                                        GlobalReplace, IgnoreCase, MultiLine)
+        Else
+            RegExExtract = vbNullString
+        End If
+    End Function
+    
+    Public Function ExtractArgumentList(ArgumentList As String) As Variant
+        If Len(ArgumentList) = 0 Then
+            Return Empty
+        ElseIf Trim$(ArgumentList) = "()" Then
+            Return Empty
+        End If
+        
+        'https://stackabuse.com/regex-splitting-by-character-unless-in-quotes/
+        Dim RE As Object
+        Set RE = CreateObject("vbscript.regexp")
+        With RE
+        	.Global = True
+            .IgnoreCase = True
+            .Pattern = ",(?=([^\""]*\""[^\""]*\"")*[^\""]*$)"
+            ExtractArgumentList = Split(.Replace(ArgumentList, vbNullChar), vbNullChar)
+        End With
+    End Function
+End Module

@@ -1,0 +1,159 @@
+'https://www.vbforums.com/showthread.php?891891-(VB6)-Implement-the-Print-method-on-any-object
+[ InterfaceId ("000204F0-0000-0000-C000-000000000046") ]
+Private Interface IVBPrint Extends stdole.IUnknown
+    Sub WriteText(ByVal strText As String)
+    Property Let Column(ByVal retVal As Long)
+    Property Get Column() As Long
+End Interface
+
+Private Module NullPrinter
+    Public Instance As IVBPrint
+End Module
+
+Private Class VBPrint
+    Implements IVBPrint
+
+    Private Type TState
+        hDC As Longptr
+        Font As stdole.StdFont
+        TextBox As VB.TextBox
+        PreviousLines As String
+        CurrentLine As String
+        ColumnCalled As Boolean
+        LineHasColumnSet As Boolean
+    End Type
+    Private This As TState
+    
+    Public Sub New(TextBox As VB.TextBox)
+        Set This.TextBox = TextBox
+        Set This.Font = TextBox.Font
+    End Sub
+    
+    Public Sub Clear()
+    	This.PreviousLines = vbNullString
+        This.CurrentLine = vbNullString
+    End Sub
+    
+    Private Property Let Column(ByVal RHS As Long) Implements IVBPrint.Column
+        Debug.Print "Let Column: " & RHS
+        Dim Temp As String = Space$(RHS)
+        LSet Temp = This.CurrentLine
+        This.CurrentLine = Temp
+        This.ColumnCalled = True
+        This.LineHasColumnSet = True
+    End Property
+
+    Private Property Get Column() As Long Implements IVBPrint.Column
+        'Debug.Print "Get Column: " & Len(This.CurrentLine)
+        Return Len(This.CurrentLine)
+    End Property
+
+    Private Sub WriteText(ByVal Text As String) Implements IVBPrint.WriteText
+        Debug.Print "Column: " & Len(This.CurrentLine), "Text: '" & Text & "'", "WasCalled: " & This.ColumnCalled, "HasColumnSet: " & This.LineHasColumnSet
+        
+        If Text = vbNewLine Then
+            PrintText vbNullString
+            This.LineHasColumnSet = False
+        Else
+            ' If This.ColumnCalled = False AndAlso This.LineHasColumnSet = True Then
+            '     PrintText vbNullString
+            '     This.LineHasColumnSet = False
+            ' End If
+            PrintText Text, False
+        End If
+        
+        If This.ColumnCalled Then
+            This.ColumnCalled = False
+        End If
+    End Sub
+    
+    Private Sub PrintText(Text As String, Optional AddLineFeed As Boolean = True)
+        This.CurrentLine &= Text
+        If AddLineFeed Then
+            This.PreviousLines &= This.CurrentLine & vbNewLine
+            This.CurrentLine = vbNullString
+        End If
+        This.TextBox.Text = This.PreviousLines & This.CurrentLine
+    End Sub
+
+    Private Sub Class_Initialize()
+        Set This.Font = New StdFont
+    End Sub
+
+    ' properties
+    Public Property Get hDC() As LongPtr
+        Return This.hDC
+    End Property
+
+    Public Property Let hDC(ByVal RHS As LongPtr)
+        This.hDC = RHS
+    End Property
+
+    Public Property Get Font() As StdFont
+        Return This.Font
+    End Property
+
+    Public Property Set Font(ByVal RHS As StdFont)
+        Set This.Font = RHS
+    End Property
+
+    Public Property Let Font(ByVal RHS As StdFont)
+        Set This.Font = RHS
+    End Property
+
+    Public Property Get FontBold() As Boolean
+        Return This.Font.Bold
+    End Property
+
+    Public Property Let FontBold(ByVal RHS As Boolean)
+        This.Font.Bold = RHS
+    End Property
+
+    Public Property Get FontItalic() As Boolean
+        Return This.Font.Italic
+    End Property
+
+    Public Property Let FontItalic(ByVal RHS As Boolean)
+        This.Font.Italic = RHS
+    End Property
+
+    Public Property Get FontName() As String
+        Return This.Font.Name
+    End Property
+
+    Public Property Let FontName(ByVal RHS As String)
+        This.Font.Name = RHS
+    End Property
+
+    Public Property Get FontSize() As Single
+        Return This.Font.Size
+    End Property
+
+    Public Property Let FontSize(ByVal RHS As Single)
+        This.Font.Size = RHS
+    End Property
+
+    Public Property Get FontStrikeThru() As Boolean
+        Return This.Font.Strikethrough
+    End Property
+
+    Public Property Let FontStrikeThru(ByVal RHS As Boolean)
+        This.Font.Strikethrough = RHS
+    End Property
+
+    Public Property Get FontUnderLine() As Boolean
+        Return This.Font.Underline
+    End Property
+
+    Public Property Let FontUnderLine(ByVal RHS As Boolean)
+        This.Font.Underline = RHS
+    End Property
+
+    Public Property Get RightToLeft() As Boolean
+        Return This.TextBox.RightToLeft
+    End Property
+
+    Public Property Let RightToLeft(ByVal RHS As Boolean)
+        This.TextBox.RightToLeft = RHS
+    End Property
+End Class

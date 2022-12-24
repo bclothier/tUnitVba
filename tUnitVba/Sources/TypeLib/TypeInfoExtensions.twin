@@ -1,0 +1,49 @@
+Private Module TypeInfoExtensions
+    '@Folder "TypeInfoInvoker"
+    Option Private Module
+    Option Explicit
+
+    '<Summary> An internal interface exposed by VBA for all components (modules, class modules, etc)
+    '<remarks> This internal interface is known to be supported since the very earliest version of VBA6
+    '[ComImport(), Guid("DDD557E1-D96F-11CD-9570-00AA0051E5D4")]
+    '[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    Public Enum IVBEComponentVTableOffsets           '+3 for the IUnknown
+        CompileComponentOffset = 12 + 3              'void CompileComponent();
+        GetStdModAccessorOffset = 14 + 3             'IDispatch GetStdModAccessor();
+        GetSomeRelatedTypeInfoPtrsOffset = 34 + 3    'void GetSomeRelatedTypeInfoPtrs(out IntPtr a, out IntPtr b);        // returns 2 TypeInfos, seemingly related to this ITypeInfo, but slightly different.
+    End Enum
+
+    Public Function GetStdModAccessor(ByVal IVBEComponent As LongPtr) As Object
+
+        Dim outResult As Object
+        
+        Dim valueWrapper As Variant
+        valueWrapper = VarPtr(outResult)
+        
+        Dim parameterPointers(0 To 0) As LongPtr
+        parameterPointers(0) = VarPtr(valueWrapper)
+        
+        Dim parameterVarTypes(0 To 0) As Integer
+        parameterVarTypes(0) = VarType(outResult)
+        
+        Dim paramCount As Long
+        paramCount = 1
+        
+        Dim calledFunctionHresult As Variant
+        Dim apiHresult As hResultCode
+        apiHresult = DispCallFunc(IVBEComponent, IVBEComponentVTableOffsets.GetStdModAccessorOffset * PTR_SIZE, CC_STDCALL, VbVarType.vbLong, paramCount, parameterVarTypes(0), parameterPointers(0), calledFunctionHresult)
+
+        If apiHresult = S_OK Then
+            Dim VTableFuncHresult As hResultCode
+            VTableFuncHresult = calledFunctionHresult
+            
+            If VTableFuncHresult = S_OK Then
+                Set GetStdModAccessor = outResult
+            Else
+                Err.Raise VTableFuncHresult, "GetStdModAccessor", "Function did not succeed. IVBEComponent::GetStdModAccessor HRESULT: 0x" & Hex(VTableFuncHresult)
+            End If
+        Else
+            Err.Raise apiHresult, "DispCallFunc", "Failed to call function. DispCallFunc HRESULT: 0x" & Hex(apiHresult)
+        End If
+    End Function
+End Module

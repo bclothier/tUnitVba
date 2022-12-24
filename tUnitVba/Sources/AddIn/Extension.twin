@@ -1,0 +1,151 @@
+
+' NOTE: make sure you create a DLL of the correct bitness to match your version of VBA
+' (e.g. if you're using the 64-bit version of VBA, make sure you change the active build to 'win64'
+
+Private Module Globals
+    Public vbe As VBIDE.VBE
+    Public addin As VBIDE.AddIn
+    Public addinWindow As VBIDE.Window
+    Public toolWindow As UnitTestRunnerToolWindow
+End Module
+
+[ ClassId ("B8FD3CD7-5D1D-4502-A95F-045BE1539E48") ]
+Public Class Extension
+ 
+	Implements IDTExtensibility2
+	
+    Private Type RECT
+        Left As Long
+        Top As Long
+        Right As Long
+        Bottom As Long
+    End Type
+    
+    Private DeclareWide PtrSafe Function GetClientRect Lib "user32" (ByVal hWnd As LongPtr, ByRef outRect As RECT) As Long
+    
+    Private toolbarButton As Object
+    Private WithEvents toolbarButtonEvents As VBIDE.CommandBarEvents
+	Private isConnected As Boolean
+    
+    [ Restricted, Hidden ]
+	Public Sub OnConnection(ByVal Application As Object, _
+							ByVal ConnectMode As ext_ConnectMode, _
+							ByVal AddInInst As Object, _
+							ByRef custom As Variant()) _
+							Implements IDTExtensibility2.OnConnection
+        Set vbe = Application
+		Set addin = AddInInst
+        addin.Object = Me
+        
+        CreateToolWindow()
+        CreateToolBar()
+        
+        isConnected = True
+    End Sub
+	                    
+    [ Restricted, Hidden ]
+    Public Sub OnDisconnection(ByVal RemoveMode As ext_DisconnectMode, _
+                            ByRef custom As Variant()) _
+                            Implements IDTExtensibility2.OnDisconnection
+        ShutdownAddin()
+    End Sub
+
+    [ Restricted, Hidden ]
+ 	Public Sub OnBeginShutdown(ByRef custom As Variant()) _
+						Implements IDTExtensibility2.OnBeginShutdown
+        ShutdownAddin()     ' the earlier we release everything back to VBIDE, the better
+	End Sub
+                        
+    [ Restricted, Hidden ]
+	Public Sub OnAddInsUpdate(ByRef custom As Variant()) _
+						Implements IDTExtensibility2.OnAddInsUpdate
+                        
+	End Sub
+	        
+    [ Restricted, Hidden ]
+	Public Sub OnStartupComplete(ByRef custom As Variant()) _
+						Implements IDTExtensibility2.OnStartupComplete
+        ' When opening the addin manually (with Load on Startup off), this won't be triggered
+	End Sub
+	 	
+    Private Sub ShutdownAddin()
+        If isConnected = False Then Exit Sub
+
+        Set addin = Nothing
+        Set vbe = Nothing
+        isConnected = False
+    End Sub
+
+    Private Sub CreateToolWindow()
+    	Set addinWindow = vbe.Windows.CreateToolWindow(addin, CurrentProjectName & ".UnitTestRunnerToolWindow", _
+                                "tUnit Runner", VBA.Compilation.CurrentComponentCLSID, toolWindow)
+    End Sub
+
+    Private Sub CreateToolBar()
+    	Set toolbarButton = vbe.CommandBars("Menu Bar").Controls("Add-Ins").Controls.Add(Temporary:=True)
+        With toolbarButton
+        	.Caption = "tUnit Runner"
+            Set toolbarButtonEvents = vbe.Events.CommandBarEvents(toolbarButton)
+        End With
+    End Sub
+    
+    Private Sub toolbarButtonEvents_Click(ByVal CommandBarControl As Object, _
+                                            ByRef Handled As Boolean, ByRef CancelDefault As Boolean) Handles toolbarButtonEvents.Click
+        ' "Toggle myToolWindow Visibility" button click handler...
+        addinWindow.Visible = Not addinWindow.Visible
+        Handled = True
+        CancelDefault = False
+    End Sub
+    
+    Private Sub InitializeNewInstallation()
+        ' Make our toolwindow visible, and modify the width/height to match 
+        '  what was originally set on the UserControl at design time
+        Dim uc As Control
+        Set uc = toolWindow
+
+        Dim initialWidth As Long = uc.Width
+        Dim initialHeight As Long = uc.Height
+
+        addinWindow.Visible = True
+
+        Dim toolWindowLiveRect As RECT
+        GetClientRect(toolWindow.hWnd, toolWindowLiveRect)
+        Dim nonClientWidthAdjust As Long = addinWindow.Width - (toolWindowLiveRect.Right - toolWindowLiveRect.Left)
+        Dim nonClientHeightAdjust As Long = addinWindow.Height - (toolWindowLiveRect.Bottom - toolWindowLiveRect.Top)
+
+    	addinWindow.Width = (initialWidth * toolWindow.DpiScale) + nonClientWidthAdjust
+        addinWindow.Height = (initialHeight * toolWindow.DpiScale) + nonClientHeightAdjust
+    End Sub
+    
+    Private Sub LoadSettings()
+        On Error GoTo SettingsError
+            If GetSetting(CurrentProjectName, CurrentComponentCLSID, "HasRunBefore", False) = False Then
+                InitializeNewInstallation()
+                Exit Sub
+            End If
+
+            addinWindow.Visible = GetSetting(CurrentProjectName, CurrentComponentCLSID, "ToolWindowIsVisible", True)
+            Exit Sub
+        
+        SettingsError:
+            InitializeNewInstallation()
+    End Sub
+
+    Private Sub SaveSettings()
+        On Error Resume Next
+        SaveSetting(CurrentProjectName, CurrentComponentCLSID, "ToolWindowIsVisible", addinWindow.Visible)
+        SaveSetting(CurrentProjectName, CurrentComponentCLSID, "HasRunBefore", True)
+    End Sub
+
+    Public Property Get GetVBE() As VBIDE.VBE
+    	Return vbe
+    End Property
+    
+    Public Function ExecuteCode(ProjectName As String, ModuleName As String, ProcedureName As String) As Variant
+        Return StdAccessor.ExecuteCode(ProjectName, ModuleName, ProcedureName)
+    End Function
+    
+    Public Function DocTests(Pattern As String) As Boolean
+        Return DocTestsModule.DocTests(Pattern, NullPrinter.Instance)
+    End Function
+End Class

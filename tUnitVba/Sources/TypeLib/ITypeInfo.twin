@@ -1,0 +1,109 @@
+'FIXME The interfaces are not completely implemented & tested. Note especially the string handling and 
+'lack of struct supports. Treat it as potentially remotely launching russian nukes. 
+
+[ InterfaceId ("00020402-0000-0000-C000-000000000046") ]
+Private Interface ITypeLib Extends stdole.IUnknown
+'        [ PreserveSig ] int GetTypeInfoCount();
+    [ PreserveSig ]
+    Function GetTypeInfoCount() As Long
+'        [ PreserveSig ] /*HRESULT*/ int GetTypeInfo(int index, /*out ITypeInfo*/ IntPtr ppTI);
+    Sub GetTypeInfo(ByVal index As Long, ByRef ppTI As LongPtr)
+'        [ PreserveSig ] /*HRESULT*/ int GetTypeInfoType(int index, /*out TYPEKIND*/ IntPtr pTKind);
+    Sub GetTypeInfoType(ByVal index As Long, ByRef pTKind As Long)
+'        [ PreserveSig ] /*HRESULT*/ int GetTypeInfoOfGuid(ref Guid guid, /*out ITypeInfo*/ IntPtr ppTInfo);
+    Sub GetTypeInfoOfGuid(ByRef guid As GUID, ByRef ppTInfo As ITypeInfo)
+'        [ PreserveSig ] /*HRESULT*/ int GetLibAttr(/*out TLIBATTR*/ IntPtr ppTLibAttr);
+    Sub GetLibAttr(ByRef ppTlibAttr As LongPtr)
+'        [ PreserveSig ] /*HRESULT*/ int GetTypeComp(/*out ITypeComp*/ IntPtr ppTComp);
+    Sub GetTypeComp(ByRef ppTComp As LongPtr)
+'        [ PreserveSig ] /*HRESULT*/ int GetDocumentation(int index, /*out string*/ IntPtr strName, /*out string*/ IntPtr strDocString, /*out int*/ IntPtr dwHelpContext, /*out string*/ IntPtr strHelpFile);
+    Sub GetDocumentation(ByVal index As Long, ByRef strName As String, ByRef strDocString As String, ByRef dwHelpContext As LongPtr, ByRef strHelpFile As String)
+'        [ PreserveSig ] /*HRESULT*/ int IsName(string szNameBuf, int lHashVal, /*out BOOL*/ IntPtr pfName);
+    Sub IsName(ByVal szNameBuf As LongPtr, ByVal lHashVal As Long, ByRef pfName As LongPtr)
+'        [ PreserveSig ] /*HRESULT*/ int FindName(string szNameBuf, int lHashVal, /*out ITypeInfo*/ IntPtr ppTInfo, /*out MEMBERID*/ IntPtr rgMemId, /*out short*/ IntPtr pcFound);
+    Sub FindName(ByVal szNameBuf As LongPtr, ByVal lHashVal As Long, ByRef ppTInfo As ITypeInfo, ByRef rgMemId As LongPtr, ByRef pcFound As Integer)
+'        [ PreserveSig ] void ReleaseTLibAttr(/*TLIBATTR*/ IntPtr pTLibAttr);
+    Sub ReleaseTLibAttr(ByVal pTLibAttr As LongPtr)
+End Interface
+   
+
+[ InterfaceId ("00020401-0000-0000-C000-000000000046") ]
+Private Interface ITypeInfo Extends stdole.IUnknown
+'    [ PreserveSig ] /*HRESULT*/ int GetTypeAttr(/*out TYPEATTR*/ IntPtr ppTypeAttr);
+    Sub GetTypeAttr(ByRef ppTypeAttr As LongPtr)
+'    [ PreserveSig ] /*HRESULT*/ int GetTypeComp(/*out ITypeComp*/ IntPtr ppTComp);
+    Sub GetTypeComp(ByRef ppTComp As LongPtr)
+'    [ PreserveSig ] /*HRESULT*/ int GetFuncDesc(int index, /*out FUNCDESC*/ IntPtr ppFuncDesc);
+    Sub GetFuncDesc(ByVal index As Long, ByRef ppFuncDesc As LongPtr)
+'    [ PreserveSig ] /*HRESULT*/ int GetVarDesc(int index, /*out VARDESC*/ IntPtr ppVarDesc);
+    Sub GetVarDesc(ByVal index As Long, ByRef ppVarDesc As LongPtr)
+'    [ PreserveSig ] /*HRESULT*/ int GetNames(int memid, /*string[]*/ IntPtr rgBstrNames, int cMaxNames, /*out int*/ IntPtr pcNames);
+    Sub GetNames(ByVal memid As Long, ByVal rgBstrNames As LongPtr, ByVal cMaxNames As LongPtr, ByRef pcNames As LongPtr)
+'    [ PreserveSig ] /*HRESULT*/ int GetRefTypeOfImplType(int index, /*out HREFTYPE*/ IntPtr href);
+    Sub GetRefTypeOfImplType(ByVal index As Long, ByRef href As LongPtr)
+'    [ PreserveSig ] /*HRESULT*/ int GetImplTypeFlags(int index, /*out ComTypes.IMPLTYPEFLAGS*/ IntPtr pImplTypeFlags);
+    Sub GetImplTypeFlags(ByVal index As Long, ByRef pImplTypeFlags As LongPtr)
+'    [ PreserveSig ] /*HRESULT*/ int GetIDsOfNames(/*string[]*/ IntPtr rgszNames, int cNames, /*out MEMBERID*/ IntPtr pMemId);
+    Sub GetIDsOfNames(ByVal rgszNames As LongPtr, ByVal cNames As LongPtr, ByRef pMemId As LongPtr)
+'    [ PreserveSig ] /*HRESULT*/ int Invoke(/*object*/ IntPtr pvInstance, int memid, short wFlags,/*ref ComTypes.DISPPARAMS*/ IntPtr pDispParams, /*out VARIANT*/ IntPtr pVarResult, /*out EXCEPINFO*/ IntPtr pExcepInfo, /*out int*/ IntPtr puArgErr);
+    Sub Invoke(ByVal pvInstance As LongPtr, ByVal memid As Long, ByVal wFlags As Integer, ByRef pDispParams As LongPtr, ByRef pVarResult As Variant, ByRef pExcepInfo As LongPtr, ByRef puArrErr As Long)
+'    [ PreserveSig ] /*HRESULT*/ int GetDocumentation(int index, /*out string*/ IntPtr strName, /*out string*/ IntPtr strDocString, /*out int*/ IntPtr dwHelpContext, /*out string*/ IntPtr strHelpFile);
+    Sub GetDocumentation(ByVal index As Long, ByRef strName As String, ByRef strDocString As String, ByRef dwHelpContext As LongPtr, ByRef strHelpFile As String)
+'    [ PreserveSig ] /*HRESULT*/ int GetDllEntry(int memid, System.Runtime.InteropServices.ComTypes.INVOKEKIND invKind, /*out string*/ IntPtr pBstrDllName, /*out string*/IntPtr pBstrName, /*out short*/ IntPtr pwOrdinal);
+    Sub GetDllEntry(ByVal memid As Long, ByVal invKind As Long, ByRef pBstrDllName As LongPtr, ByRef bStrName As LongPtr, ByRef pwOrdinal As LongPtr)
+'    [ PreserveSig ] /*HRESULT*/ int GetRefTypeInfo(int hRef, /*out ITypeInfo*/ IntPtr ppTI);
+    Sub GetRefTypeInfo(ByVal hRef As Long, ByRef ppTI As LongPtr)
+'    [ PreserveSig ] /*HRESULT*/ int AddressOfMember(int memid, System.Runtime.InteropServices.ComTypes.INVOKEKIND invKind, /*out IntPtr*/ IntPtr ppv);
+    Sub AddressOfMember(ByVal memid As Long, ByVal invKind As Long, ByRef ppv As LongPtr)
+'    [ PreserveSig ] /*HRESULT*/ int CreateInstance(/*object*/ IntPtr pUnkOuter, ref Guid riid, /*out IntPtr*/ IntPtr ppvObj);
+    Sub CreateInstance(ByVal pUnkOuter As LongPtr, ByRef riid As GUID, ByRef ppvObj As LongPtr)
+'    [ PreserveSig ] /*HRESULT*/ int GetMops(int memid, /*out string*/ IntPtr pBstrMops);
+    Sub GetMops(ByVal memId As Long, ByRef pBstrMops As LongPtr)
+'    [ PreserveSig ] /*HRESULT*/ int GetContainingTypeLib(/*out ITypeLib*/ IntPtr ppTLB, /*out int*/ IntPtr pIndex);
+    Sub GetContainingTypeLib(ByRef ppTLB As ITypeLib, ByRef pIndex As Long)
+'    [ PreserveSig ] void ReleaseTypeAttr(/*TYPEATTR*/ IntPtr pTypeAttr);
+    Sub ReleaseTypeAttr(ByVal pTypeAttr As LongPtr)
+'    [ PreserveSig ] void ReleaseFuncDesc(/*FUNCDESC*/ IntPtr pFuncDesc);
+    Sub ReleaseFuncDesc(ByVal pFuncDesc As LongPtr)
+'    [ PreserveSig ] void ReleaseVarDesc(/*VARDESC*/ IntPtr pVarDesc);
+    Sub ReleaseVarDesc(ByVal pVarDesc As LongPtr)
+End Interface
+
+[ InterfaceId ("DDD557E1-D96F-11CD-9570-00AA0051E5D4") ]
+Private Interface IVBEComponent Extends stdole.IUnknown
+        Sub Placeholder1()
+        Sub Placeholder2()
+        Sub Placeholder3()
+        Sub Placeholder4()
+        Sub Placeholder5()
+        Sub Placeholder6()
+        Sub Placeholder7()
+        Sub Placeholder8()
+        Sub Placeholder9()
+        Sub Placeholder10()
+        Sub Placeholder11()
+        Sub Placeholder12()
+        Sub CompileComponent()
+        Sub Placeholder14()
+        Function GetStdModAccessor() As Object
+        Sub Placeholder16()
+        Sub Placeholder17()
+        Sub Placeholder18()
+        Sub Placeholder19()
+        Sub Placeholder20()
+        Sub Placeholder21()
+        Sub Placeholder22()
+        Sub Placeholder23()
+        Sub Placeholder24()
+        Sub Placeholder25()
+        Sub Placeholder26()
+        Sub Placeholder27()
+        Sub Placeholder28()
+        Sub Placeholder29()
+        Sub Placeholder30()
+        Sub Placeholder31()
+        Sub Placeholder32()
+        Sub Placeholder33()
+        ' returns 2 TypeInfos, seemingly related to this ITypeInfo, but slightly different.
+        Sub GetSomeRelatedTypeInfoPtrs(ByRef a As ITypeInfo, ByRef b As ITypeInfo)
+End Interface

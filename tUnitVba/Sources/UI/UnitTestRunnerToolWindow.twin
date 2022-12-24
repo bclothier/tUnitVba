@@ -1,0 +1,19 @@
+[ Description ("") ]
+[ FormDesignerId ("26370C7D-AD9F-40E2-BEEA-4CC3F1F36C3F") ]
+[ Restricted, Hidden ]
+Public Class UnitTestRunnerToolWindow
+    Private Printer As VBPrint
+    
+    Private DeclareWide PtrSafe Function GetDC Lib "user32" (ByVal hWnd As LongPtr) As LongPtr
+	
+    Sub New()
+        Set Printer = New VBPrint(Me.TestOutput)
+    End Sub
+    
+    Private Sub RunTestsButton_Click() Handles RunTestsButton.Click
+        Printer.Clear
+        Printer.Print "Start: ", Format$(Now, "hh:nn:ss")
+        DocTestsModule.DocTests Me.PatternTextBox.Text, Printer
+        Printer.Print "Finish: ", Format$(Now, "hh:nn:ss")
+    End Sub
+End Class

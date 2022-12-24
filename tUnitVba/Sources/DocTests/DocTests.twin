@@ -1,0 +1,132 @@
+'https://nolongerset.com/python-inspired-doc-tests-in-vba/
+Private Module DocTestsModule
+    ' 6/22/11: Bug fixes
+    ' 7/ 4/11: Explicitly display mismatched ExpectedResults; bug fixes
+    ' 6/15/12: Test functions that return Dates
+    '    NOTE: Cannot check to see if Expr returns an error because Eval'ed procs are executed outside the call stack:
+    '          http://windowssecrets.com/forums/showthread.php/136831-Error-handling-problem-from-evaling-code-that-raises-error
+    '12/20/13: Add support for functions that return Currency type
+    ' 4/25/13: Ignore "can't find function name" errors in non-standard modules
+    ' 5/ 1/15: Allow for complex expression evaluation by creating a temporary code module;
+    '               multiple lines may be evaluated but must be separated by a " : " ({space}{colon}{space})
+    ' 9/24/15: Allow check to see if Expr returns an error code; requires complex expr eval (four angle brackets, not three):
+    '>>>> 1/0
+    '#ERROR#
+    '        : Also, allow check for a specific error number expected to be returned; the error number may be an expression (e.g., ErrNumFromMsg())
+    '>>>> 1/0
+    '#ERROR# 11
+    ' 9/28/15: Replace `n and `t tokens with vbNewLine and vbTab, respectively, to improve string function testing
+    ' 1/ 4/16: Allow DocTests on Private functions by prepending * to function name; e.g., '>>>> *MyPrivateFunc(1, True)
+    '           - NOTE: this temporarily re-writes the source code to make a private function public; it is immediately
+    '                   made private again, but a fatal error in the interim could leave the source in the wrong state;
+    '                   be careful and KEEP YOUR SOURCE CODE UNDER VERSION CONTROL!
+    ' 8/26/16: Accepts ModNamePattern that uses simple wildcard pattern matching to test only certain modules
+    Public Function DocTests(ByVal ModNamePattern As String, Printer As IVBPrint) As Boolean   'vv
+        Dim Comp As VBIDE.VBComponent
+        Dim CM As VBIDE.CodeModule
+        Dim i As Long
+        Dim Expr As String
+        Dim ExpectedResult As Variant
+        Dim TestsPassed As Long
+        Dim TestsFailed As Long
+        Dim Evaluation As Variant
+        
+        If Len(ModNamePattern) = 0 Then
+            ModNamePattern = "*"
+        End If
+        For Each Comp In vbe.ActiveVBProject.VBComponents
+            Set CM = Comp.CodeModule
+            If Not CM.Name Like ModNamePattern Then GoTo NextComp
+            For i = 1 To CM.CountOfLines
+                If Left$(Trim$(CM.Lines(i, 1)), 4) = "'>>>" Then
+                    Dim DocTestLine As String
+                    DocTestLine = CM.Lines(i, 1)
+                    Dim IsComplexExpression As Boolean
+                    IsComplexExpression = Left$(Trim$(CM.Lines(i, 1)), 5) = "'>>>>"
+
+                    Const SearchPattern As String = "(.*)(\*)([A-Za-z0-9_-]+)\((.*)"
+                    Dim PrivateFunctionName As String
+                    PrivateFunctionName = RegExExtract(SearchPattern, DocTestLine, "$3")
+                    If Len(PrivateFunctionName) > 0 Then
+                        If IsComplexExpression Then
+                            'Fully qualify the function call to avoid possible scope ambiguity
+                            DocTestLine = RegExReplace(SearchPattern, DocTestLine, "$1" & Comp.Name & ".$3($4")
+                        Else
+                            'We can't make a fully qualified call via Eval(); if there is scope ambiguity, you need to use '>>>> form
+                            DocTestLine = RegExReplace(SearchPattern, DocTestLine, "$1$3($4")
+                        End If
+                    End If
+
+                    On Error Resume Next
+                    If IsComplexExpression Then
+                        'Complex expression
+                        Expr = Trim$(Mid$(DocTestLine, 6))
+                    Else
+                        Expr = Trim$(Mid$(DocTestLine, 5))
+                    End If
+                    
+                    Dim ProcName As String
+                    ProcName = RegExExtract("(\w*)\s*(\((.*)\)|(.*))", Expr, "$1", True, True, False)
+                    
+                    Dim ArgList As String
+                    ArgList = RegExExtract("(\w*)\s*\((.*)\)", Expr, "$2", True, True, False)
+                    If Len(Trim$(ArgList)) = 0 Then
+                        ArgList = RegExExtract("(\w*)\s*(.*)", Expr, "$2", True, True, False)
+                    End If
+                    
+                    Dim Args As Variant
+                    If Len(Trim$(ArgList)) Then
+                        Args = ExtractArgumentList(ArgList)
+                        If IsEmpty(Args) Then
+                            Evaluation = StdAccessor.ExecuteCode(Comp.Collection.Parent.Name, Comp.Name, ProcName)
+                        Else
+                            Evaluation = StdAccessor.ExecuteCode(Comp.Collection.Parent.Name, Comp.Name, ProcName, Args)
+                        End If
+                    End If
+                    
+                    If Err.Number = 2425 And Comp.Type <> 1 Then
+                        'The expression you entered has a function name that Vision Viewer  can't find.
+                        'This is not surprising because we are not in a standard code module (Comp.Type <> 1).
+                        'So we will just ignore it.
+                        GoTo NextLine
+                    ElseIf Err.Number <> 0 Then
+                        Printer.Print Err.Number, Err.Description, Expr
+                        GoTo NextLine
+                    End If
+                    On Error GoTo 0
+                    ExpectedResult = Trim$(Mid$(CM.Lines(i + 1, 1), InStr(CM.Lines(i + 1, 1), "'") + 1))
+                    If Left$(ExpectedResult, 8) = "#ERROR# " Then
+                        'ExpectedResult = "#ERROR# " & Eval(Mid$(ExpectedResult, 9))
+                    Else
+                        ExpectedResult = Replace$(ExpectedResult, "`n", vbNewLine)
+                        ExpectedResult = Replace$(ExpectedResult, "`t", vbTab)
+                    End If
+                    Select Case ExpectedResult
+                    Case "True": ExpectedResult = True
+                    Case "False": ExpectedResult = False
+                    Case "Null": ExpectedResult = Null
+                    Case "#ERROR#": If Evaluation Like "[#]ERROR[#]*" Then ExpectedResult = Evaluation
+                    End Select
+                    Select Case TypeName(Evaluation)
+                    Case "Long", "Integer", "Short", "Byte", "Single", "Double", "Decimal", "Currency"
+                        'ExpectedResult = Eval(ExpectedResult)
+                    Case "Date"
+                        If IsDate(ExpectedResult) Then ExpectedResult = CDate(ExpectedResult)
+                    End Select
+                    If (Evaluation = ExpectedResult) Then
+                        TestsPassed = TestsPassed + 1
+                    ElseIf (IsNull(Evaluation) And IsNull(ExpectedResult)) Then
+                        TestsPassed = TestsPassed + 1
+                    Else
+                        Printer.Print Comp.Name ; ": " ; Expr ; " evaluates to: " ; Evaluation ; " Expected: " ; ExpectedResult
+                        TestsFailed = TestsFailed + 1
+                    End If
+                End If
+    NextLine:
+            Next i
+    NextComp:
+        Next Comp
+        Printer.Print "Tests passed: " ; TestsPassed ; " of " ; TestsPassed + TestsFailed
+        Return (TestsFailed = 0)  'Return True if all tests pass
+    End Function    '^^
+End Module

@@ -1,0 +1,96 @@
+Private Module StdAccessor
+    '@Folder "TypeInfoInvoker"
+    Option Explicit
+
+    Public Type VBEReferencesObj
+        vTable1 As LongPtr                           'To _References vtable
+        vTable2 As LongPtr
+        vTable3 As LongPtr
+        object1 As LongPtr
+        object2 As LongPtr
+        typeLib As LongPtr
+        placeholder1 As LongPtr
+        placeholder2 As LongPtr
+        refCount As LongPtr
+    End Type
+
+    Public Type VBETypeLibObj
+        vTable1 As LongPtr                           'To ITypeLib vtable
+        vTable2 As LongPtr
+        vTable3 As LongPtr
+        Prev As LongPtr
+        Next As LongPtr
+    End Type
+
+    Public Function StdModuleAccessor(ByVal moduleName As String, Optional ByVal projectName As Variant) As Object
+        Dim project As String
+        project = If(IsMissing(projectName), vbe.ActiveVBProject.Name, projectName)
+        
+        Dim referencesInstancePtr As LongPtr
+        referencesInstancePtr = ObjPtr(vbe.ActiveVBProject.References)
+        Debug.Assert referencesInstancePtr <> 0
+        
+        'The references object instance looks like this, and has a raw pointer contained within it to the typelibs it uses
+        Dim refData As VBEReferencesObj
+        CopyMemory refData, ByVal referencesInstancePtr, LenB(refData)
+        Debug.Assert refData.vTable1 = MemLongPtr(referencesInstancePtr)
+        
+        Dim typeLibInstanceTable As VBETypeLibObj
+        CopyMemory typeLibInstanceTable, ByVal refData.typeLib, LenB(typeLibInstanceTable)
+        
+        'Create a class to iterate over the doubly linked list
+        Dim typeLibPtrs As TypeLibIterator
+        Set typeLibPtrs = New TypeLibIterator
+        typeLibPtrs.baseTypeLib = refData.typeLib
+        
+        'Now we could use proj.module.sub to find something in particular
+        'For now though, we just want a reference to the typeInfo for the ExampleModule
+        Dim projectTypeLib As ITypeLib
+        Dim found As Boolean
+        Do While typeLibPtrs.TryGetNext(projectTypeLib)
+            Dim libName As String
+            projectTypeLib.GetDocumentation(-1, libName, vbNullString, 0, vbNullString)
+            If Trim$(libName) = Trim$(project) Then
+                Dim moduleTI As ITypeInfo
+                If TryGetTypeInfo(projectTypeLib, moduleName, outTI:=moduleTI) Then
+                    found = True
+                    Exit Do
+                Else
+                    Err.Raise vbObjectError + 5, Description:="Module with name '" & moduleName & "' not found in project " & project
+                End If
+            End If
+        Loop
+        If Not found Then
+            Err.Raise vbObjectError + 5, Description:="No project found with that name"
+        End If
+
+        Dim IVBEComponent As IVBEComponent
+        Set IVBEComponent = moduleTI
+        
+        Set StdModuleAccessor = IVBEComponent.GetStdModAccessor()
+    End Function
+
+    Private Function TryGetTypeInfo(ByVal typeLib As ITypeLib, ByVal moduleName As String, ByRef outTI As ITypeInfo) As Boolean
+        On Error Resume Next
+        Dim ignored As LongPtr, count As Integer = 1
+        typeLib.FindName(StrPtr(moduleName), 0, outTI, ignored, count)
+        TryGetTypeInfo = (Err.Number = 0) AndAlso count = 1
+    End Function
+
+    Public Function ExecuteCode(ByVal projectName As String, ByVal moduleName As String, ByVal methodName As String, Optional ByRef args As Variant) As Variant
+        Dim accessor As Object
+        Set accessor = StdModuleAccessor(moduleName, projectName)
+        On Error GoTo logErr
+        
+        If IsMissing(args) Then
+            Return CallByName(accessor, methodName, VbCallType.vbMethod)
+        Else
+            Return CallByName(accessor, methodName, VbCallType.vbMethod, args)
+        End If
+        Exit Function
+        
+    logErr:
+        MsgBox Err.Number & "-" & Err.Description & vbNewLine & "MethodName: " & methodName & vbNewLine & "IsMissing: " & IsMissing(args) & vbNewLine & "IsArray:" & IsArray(args) & vbNewLine, vbCritical + vbOKOnly, "Error when Invoking Sub"
+        Resume Next
+    End Function
+End Module

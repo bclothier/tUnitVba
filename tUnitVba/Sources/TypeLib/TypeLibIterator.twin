@@ -1,0 +1,48 @@
+Private Class TypeLibIterator
+    '@Folder "TypeInfoInvoker"
+    Option Explicit
+
+    Private Type TIterator
+        currentTL As VBETypeLibObj
+    End Type
+
+    Private this As TIterator
+
+    Public Property Let baseTypeLib(ByVal rawptr As LongPtr)
+        currentTL = rawptr
+        ResetIteration
+    End Property
+
+    Private Property Let currentTL(ByVal rawptr As LongPtr)
+        CopyMemory this.currentTL, ByVal rawptr, LenB(this.currentTL)
+    End Property
+
+    Public Sub ResetIteration()
+        Do While this.currentTL.Prev <> 0
+            currentTL = this.currentTL.Prev
+        Loop
+    End Sub
+
+    Private Function NextTypeLib() As LongPtr
+        If this.currentTL.Next = 0 Then Err.Raise 5, Description:="We've reached the end of the line"
+        NextTypeLib = this.currentTL.Next
+        currentTL = this.currentTL.Next
+    End Function
+
+    '@Desccription("Gets type library com objects from list")
+    Public Function TryGetNext(ByRef outTypeLib As ITypeLib) As Boolean
+        On Error GoTo cleanFail
+        Dim tlPtr As LongPtr
+        tlPtr = NextTypeLib
+        Set outTypeLib = ObjectFromObjPtr(tlPtr)
+        TryGetNext = (outTypeLib IsNot Nothing)
+        
+    cleanExit:
+        Exit Function
+        
+    cleanFail:
+        TryGetNext = False
+        Set outTypeLib = Nothing
+        Resume cleanExit
+    End Function
+End Class

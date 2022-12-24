@@ -1,0 +1,25 @@
+Module Tests
+    Public Sub Test()
+        Dim xlApp As Object
+        Set xlApp = GetObject(, "Excel.Application")
+        
+        Dim x As Extension
+        Set x = New Extension
+        Dim c() As Variant
+        'Set x = xlApp.VBE.Addins(2).Object
+        x.OnConnection xlApp.vbe, ext_cm_Startup, xlApp.VBE.Addins(2), c
+        x.ExecuteCode("VBAProject", "Module1", "foo")
+    End Sub
+    
+    Public Sub Test2()
+        Dim xlApp As Object
+        Set xlApp = GetObject(, "Excel.Application")
+        
+        Dim x As Extension
+        Set x = New Extension
+        Dim c() As Variant
+        'Set x = xlApp.VBE.Addins(2).Object
+        x.OnConnection xlApp.vbe, ext_cm_Startup, xlApp.VBE.Addins(2), c
+        x.DocTests("Module1")
+    End Sub
+End Module

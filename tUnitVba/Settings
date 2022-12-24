@@ -1,0 +1,60 @@
+{
+	"configuration.inherits": "Defaults",
+	"project.appTitle": "tUnitVba Library",
+	"project.buildPath": "${SourcePath}\\Build\\${ProjectName}_${Architecture}.${FileExtension}",
+	"project.buildType": "ActiveX DLL",
+	"project.description": "Unit Test Library for VBA Projects",
+	"project.exportPathIsV2": true,
+	"project.id": "{C42839B0-B7C3-4E45-BB8C-7162E159F755}",
+	"project.name": "tUnitVba",
+	"project.optionExplicit": true,
+	"project.references": [
+		{
+			"id": "{00020430-0000-0000-C000-000000000046}",
+			"lcid": 0,
+			"name": "OLE Automation",
+			"path32": "C:\\Windows\\SysWOW64\\stdole2.tlb",
+			"path64": "C:\\Windows\\System32\\stdole2.tlb",
+			"versionMajor": 2,
+			"versionMinor": 0
+		},
+		{
+			"id": "{AC0714F2-3D04-11D1-AE7D-00A0C90F26F4}",
+			"lcid": 0,
+			"name": "Microsoft Add-In Designer",
+			"path32": "C:\\Program Files (x86)\\Common Files\\Designer\\MSADDNDR.DLL",
+			"path64": "",
+			"versionMajor": 1,
+			"versionMinor": 0
+		},
+		{
+			"id": "{F50B82D0-DCAB-43FE-9631-11959D4A4728}",
+			"isCompilerPackage": true,
+			"licence": "MIT",
+			"name": "[COMPILER PACKAGE] WinNativeForms Package",
+			"path32": "",
+			"path64": "",
+			"publisher": "TWINBASIC-COMPILER",
+			"symbolId": "WinFormsPackage",
+			"versionBuild": 0,
+			"versionMajor": 0,
+			"versionMinor": 0,
+			"versionRevision": 31
+		},
+		{
+			"id": "{0002E157-0000-0000-C000-000000000046}",
+			"lcid": 0,
+			"name": "Microsoft Visual Basic for Applications Extensibility 5.3",
+			"path32": "C:\\Program Files\\Microsoft Office\\Root\\VFS\\ProgramFilesCommonX86\\Microsoft Shared\\VBA\\VBA6\\VBE6EXT.OLB",
+			"path64": "",
+			"versionMajor": 5,
+			"versionMinor": 3
+		}
+	],
+	"project.useProjectIdForTypeLibraryId": true,
+	"project.warnings": {
+		"errors": [],
+		"ignored": []
+	},
+	"runtime.useUnicodeStandardLibrary": true
+}

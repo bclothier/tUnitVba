@@ -1,5 +1,7 @@
-# tUnitVba
+# tUnitVba Proof of concept
 A proof of concept demonstrating twInBasic solution running as a VBE add-in to run unit tests. This demonstrates the ability to:
+
+Built with twinBASIC IDE version 178
 
 * Work with memory directly
 * Obtain ITypeInfos from VBA project which in turn enables access to additional features not exposed via VBIDE addin
